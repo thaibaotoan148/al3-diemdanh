@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Điểm Danh CLB Vovinam TH An Lạc 3</title>
+  <meta name="theme-color" content="#0284c7" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Vovinam AL3" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="brand-logo">
+          <img src="logo.png" alt="Logo CLB Vovinam TH An Lạc 3" class="brand-logo-img" />
+        </div>
+        <div>
+          <span class="brand-subtitle">Việt Võ Đạo • Trường Tiểu Học An Lạc 3</span>
+          <h1 class="brand-title">CLB Vovinam TH An Lạc 3</h1>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="date-nav-bar">
+          <button type="button" id="prevDayBtn" class="btn-day-step" title="Ngày trước">‹</button>
+          <div class="date-picker-group">
+            <span id="weekdayBadge" class="weekday-badge">Thứ Hai</span>
+            <input type="date" id="attendanceDate" class="date-input" aria-label="Chọn ngày tập" />
+          </div>
+          <button type="button" id="nextDayBtn" class="btn-day-step" title="Ngày tiếp theo">›</button>
+          <button type="button" id="todayBtn" class="btn-today" title="Về hôm nay">Hôm nay</button>
+        </div>
+
+        <button id="cloudSyncBtn" class="btn btn-cloud" title="Cài đặt đồng bộ nhiều thiết bị (Cloud)">
+          <span class="cloud-dot" id="cloudStatusDot"></span>
+          <span id="cloudStatusText">Đồng bộ Cloud</span>
+        </button>
+
+        <button id="exportXlsxBtn" class="btn btn-outline" title="Xuất file Excel (.xlsx) điểm danh">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Xuất file .xlsx</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <!-- Daily Schedule Status Banner (Auto-updated by selected date) -->
+    <section class="day-schedule-banner" id="dayScheduleBanner" aria-live="polite">
+      <div class="day-banner-left">
+        <span class="day-banner-tag" id="bannerWeekdayText">Thứ Hai</span>
+        <div class="day-banner-info">
+          <h2 class="day-banner-title" id="bannerShiftTitle">Ca 1: Thứ 2 - 4 - 6 (16h45 – 18h15)</h2>
+          <p class="day-banner-sub" id="bannerShiftSub">Danh sách võ sinh tự động hiển thị theo lịch tập ngày đã chọn</p>
+        </div>
+      </div>
+      <div class="day-banner-right" id="bannerMemberCountBox">
+        <span class="banner-count-num" id="bannerMemberCount">0</span>
+        <span class="banner-count-label">võ sinh trong ca</span>
+      </div>
+    </section>
+
+    <!-- Navigation Sections (Especially helpful on portrait phone & clean on desktop) -->
+    <nav class="section-nav" aria-label="Các danh mục quản lý">
+      <button type="button" class="section-tab active" data-view="attendance">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        <span>Điểm danh</span>
+      </button>
+      <button type="button" class="section-tab" data-view="members">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        <span>Sửa thông tin</span>
+      </button>
+      <button type="button" class="section-tab" data-view="add">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="8.5" cy="7" r="4"/>
+          <line x1="20" y1="8" x2="20" y2="14"/>
+          <line x1="23" y1="11" x2="17" y2="11"/>
+        </svg>
+        <span>Thêm võ sinh</span>
+      </button>
+      <button type="button" class="section-tab" data-view="stats">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        <span>Thống kê</span>
+      </button>
+    </nav>
+
+    <!-- SUNDAY / NO CLASS NOTICE -->
+    <section class="panel no-class-panel hidden" id="sundayNoClassPanel">
+      <div class="no-class-icon" aria-hidden="true">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="1.8">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+          <path d="M9 16l2 2 4-4"/>
+        </svg>
+      </div>
+      <h2 class="no-class-title" id="noClassTitle">Hôm nay không có buổi học</h2>
+      <p class="no-class-desc">
+        CLB Vovinam TH An Lạc 3 sinh hoạt vào các ngày <strong>Thứ 2 - 4 - 6 (16h45 – 18h15)</strong> và <strong>Thứ 3 - 5 - 7 (17h30 – 19h00)</strong>. Chủ Nhật CLB nghỉ tập.
+      </p>
+      <div class="no-class-actions">
+        <button type="button" id="goNextClassDayBtn" class="btn btn-primary">
+          Chuyển tới Thứ Hai (Ca 1) ›
+        </button>
+        <button type="button" id="goPrevClassDayBtn" class="btn btn-outline">
+          ‹ Xem lại Thứ Bảy (Ca 2)
+        </button>
+      </div>
+    </section>
+
+    <!-- Quick Stats Banner -->
+    <section class="stats-grid" id="quickStatsSection" aria-label="Thống kê buổi tập">
+      <div class="stat-card stat-total">
+        <span class="stat-label">Tổng số võ sinh</span>
+        <strong class="stat-value" id="statTotal">0</strong>
+      </div>
+      <div class="stat-card stat-present">
+        <span class="stat-label">Có mặt</span>
+        <strong class="stat-value" id="statPresent">0</strong>
+      </div>
+      <div class="stat-card stat-excused">
+        <span class="stat-label">Vắng có phép</span>
+        <strong class="stat-value" id="statExcused">0</strong>
+      </div>
+      <div class="stat-card stat-absent">
+        <span class="stat-label">Vắng không phép</span>
+        <strong class="stat-value" id="statAbsent">0</strong>
+      </div>
+    </section>
+
+    <!-- VIEW 1 & 2: ATTENDANCE & DIRECT INFO EDITING -->
+    <section class="panel main-list-panel" id="view-list-container">
+      <div class="panel-top-bar">
+        <div>
+          <h2 class="panel-title" id="listViewTitle">Điểm Danh Buổi Tập</h2>
+          <p class="panel-desc" id="listViewSubtitle">Bấm chọn trạng thái điểm danh hoặc nhấn vào từng ô để sửa trực tiếp</p>
+        </div>
+
+        <div class="toolbar-actions" id="attendanceQuickActions">
+          <button type="button" id="markAllPresentBtn" class="btn btn-soft-success">
+            ✓ Có mặt tất cả
+          </button>
+          <button type="button" id="resetAttendanceBtn" class="btn btn-soft-neutral">
+            Đặt lại
+          </button>
+        </div>
+      </div>
+
+      <!-- Shift Filter in "Sửa thông tin" mode so coach can edit all students even on Sunday -->
+      <div class="edit-mode-shift-bar hidden" id="editModeShiftBar">
+        <span class="edit-shift-label">Xem danh sách theo ca:</span>
+        <div class="filter-pills">
+          <button type="button" class="shift-filter-pill active" data-shift-filter="auto">Theo ngày đang chọn</button>
+          <button type="button" class="shift-filter-pill" data-shift-filter="ca1">Ca 1 (Thứ 2-4-6)</button>
+          <button type="button" class="shift-filter-pill" data-shift-filter="ca2">Ca 2 (Thứ 3-5-7)</button>
+          <button type="button" class="shift-filter-pill" data-shift-filter="all">Tất cả CLB</button>
+        </div>
+      </div>
+
+      <div class="attendance-toolbar">
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="search" id="searchInput" placeholder="Tìm theo tên, mã định danh hoặc SĐT..." />
+        </div>
+
+        <div class="filter-pills" id="statusFilterPills">
+          <button type="button" class="filter-pill active" data-filter="all">Tất cả</button>
+          <button type="button" class="filter-pill" data-filter="present">Có mặt</button>
+          <button type="button" class="filter-pill" data-filter="excused">Có phép</button>
+          <button type="button" class="filter-pill" data-filter="absent">Vắng</button>
+        </div>
+      </div>
+
+      <!-- Student Cards / Rows Container -->
+      <div id="memberListContainer" class="member-list-container">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div id="emptyState" class="empty-state hidden">
+        <p class="empty-title">Chưa có võ sinh nào phù hợp</p>
+        <p class="empty-subtitle">Hãy chuyển sang mục "Thêm võ sinh" hoặc bấm nút bên dưới để nạp danh sách mẫu.</p>
+        <button type="button" id="loadSampleBtn" class="btn btn-outline">Tạo danh sách võ sinh mẫu</button>
+      </div>
+    </section>
+
+    <!-- VIEW 3: ADD NEW MEMBER -->
+    <section class="panel add-member-panel hidden-view" id="view-add-container">
+      <div class="panel-header">
+        <h2 class="panel-title">Thêm Võ Sinh Mới Vào CLB</h2>
+        <p class="panel-desc" id="currentShiftFormLabel">Chọn ca học cho võ sinh khi thêm vào danh sách</p>
+      </div>
+
+      <div class="add-grid">
+        <form id="addMemberForm" class="member-form">
+          <div class="form-group">
+            <label for="memberName">Họ và tên võ sinh <span class="required">*</span></label>
+            <input type="text" id="memberName" required placeholder="VD: Nguyễn Minh Khang" autocomplete="off" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="memberStudentId">Mã định danh</label>
+              <input type="text" id="memberStudentId" placeholder="VD: 079215001234" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label for="memberBelt">Cấp đai</label>
+              <select id="memberBelt">
+                <option value="Tự vệ nhập môn">Tự vệ nhập môn</option>
+                <option value="Lam đai">Lam đai</option>
+                <option value="Lam đai I">Lam đai I</option>
+                <option value="Lam đai II">Lam đai II</option>
+                <option value="Lam đai III">Lam đai III</option>
+                <option value="Hoàng đai">Hoàng đai</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="memberPhone">SĐT Phụ huynh / Liên hệ</label>
+              <input type="tel" id="memberPhone" placeholder="VD: 0909 123 456" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label for="memberShift">Ca đăng ký học</label>
+              <select id="memberShift">
+                <option value="ca1">Ca 1: Thứ 2-4-6 (16h45 - 18h15)</option>
+                <option value="ca2">Ca 2: Thứ 3-5-7 (17h30 - 19h00)</option>
+                <option value="both">Cả 2 ca (Full tuần)</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Lưu võ sinh vào danh sách
+          </button>
+        </form>
+
+        <div class="quick-import-box">
+          <h3 class="sub-box-title">Nhập nhanh nhiều võ sinh cùng lúc</h3>
+          <div class="form-group">
+            <label for="bulkShiftSelect">Nhập vào ca học:</label>
+            <select id="bulkShiftSelect">
+              <option value="ca1">Ca 1: Thứ 2-4-6 (16h45 - 18h15)</option>
+              <option value="ca2">Ca 2: Thứ 3-5-7 (17h30 - 19h00)</option>
+              <option value="both">Cả 2 ca (Full tuần)</option>
+            </select>
+          </div>
+          <p class="bulk-hint">Mỗi dòng 1 võ sinh theo thứ tự: <code>Họ tên - Mã định danh - SĐT</code></p>
+          <textarea id="bulkTextarea" rows="5" placeholder="Nguyễn Văn An - 079215001234 - 0901234567&#10;Trần Ngọc Bích - 079214005678&#10;Lê Hoàng Nam"></textarea>
+          <button type="button" id="bulkImportBtn" class="btn btn-secondary btn-block">
+            Nhập tất cả vào ca đã chọn
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: DETAILED STATS & SUMMARY REPORT -->
+    <section class="panel stats-detail-panel hidden-view" id="view-stats-container">
+      <div class="panel-header">
+        <h2 class="panel-title">Tổng Hợp Buổi Tập & Xuất Báo Cáo (.xlsx)</h2>
+        <p class="panel-desc" id="statsSessionLabel">Chi tiết chuyên cần theo ca và ngày đang chọn</p>
+      </div>
+
+      <div class="report-summary-grid" id="reportSummaryGrid">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="report-actions-bar">
+        <button type="button" id="exportXlsxBtn2" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Tải file Điểm danh Excel (.xlsx)
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Cloud Sync Modal -->
+  <div id="cloudModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="cloudModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="cloudModalTitle">☁️ Đồng Bộ Thời Gian Thực Nhiều Thiết Bị</h3>
+        <button type="button" id="closeCloudModalBtn" class="modal-close-btn" aria-label="Đóng">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Kết nối với <strong>Google Firebase Realtime Database</strong> (miễn phí 100%) để khi bạn điểm danh hoặc thêm/sửa võ sinh trên máy này, mọi điện thoại và máy tính khác mở trang web đều tự động cập nhật ngay lập tức.
+        </p>
+
+        <div class="form-group">
+          <label for="firebaseDbUrlInput">Đường dẫn Firebase Realtime Database URL:</label>
+          <input
+            type="url"
+            id="firebaseDbUrlInput"
+            placeholder="VD: https://vovinam-anlac3-default-rtdb.asia-southeast1.firebasedatabase.app"
+            autocomplete="off"
+          />
+          <small class="modal-hint">
+            💡 <strong>Mẹo:</strong> Bạn cũng có thể dán trực tiếp link này vào biến <code>DEFAULT_CLOUD_DB_URL</code> ở dòng đầu file <code>app.js</code> để mọi người mở web lên là tự động đồng bộ luôn mà không cần nhập lại.
+          </small>
+        </div>
+
+        <div class="cloud-guide-box">
+          <strong>Hướng dẫn tạo nhanh trong 1 phút (Miễn phí):</strong>
+          <ol>
+            <li>Vào <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">console.firebase.google.com</a> → Bấm <strong>Create a project</strong>.</li>
+            <li>Ở menu trái, chọn <strong>Build → Realtime Database → Create Database</strong>.</li>
+            <li>Chọn chế độ <strong>Start in test mode</strong> (hoặc bật <code>read/write: true</code> trong tab Rules).</li>
+            <li>Copy đường link <code>https://...firebasedatabase.app</code> dán vào ô bên trên và bấm <strong>Kết nối & Đồng bộ</strong>.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="disconnectCloudBtn" class="btn btn-soft-neutral">Ngắt kết nối</button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="pushLocalToCloudBtn" class="btn btn-secondary" title="Đẩy danh sách hiện tại trên máy này lên Cloud">
+            Đẩy dữ liệu máy này lên Cloud
+          </button>
+          <button type="button" id="saveCloudConfigBtn" class="btn btn-primary">
+            Kết nối & Đồng bộ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
