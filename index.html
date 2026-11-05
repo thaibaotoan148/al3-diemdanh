@@ -198,6 +198,8 @@
           <button type="button" class="filter-pill" data-filter="present">Có mặt</button>
           <button type="button" class="filter-pill" data-filter="excused">Có phép</button>
           <button type="button" class="filter-pill" data-filter="absent">Vắng</button>
+          <button type="button" class="filter-pill" data-filter="unpaid">Chưa đóng HP</button>
+          <button type="button" class="filter-pill" data-filter="paid">Đã đóng HP</button>
         </div>
       </div>
 
@@ -258,6 +260,14 @@
                 <option value="both">Cả 2 ca (Full tuần)</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label for="memberTuition">Tình trạng học phí tháng này</label>
+            <select id="memberTuition">
+              <option value="unpaid">Chưa đóng</option>
+              <option value="paid">Đã đóng</option>
+            </select>
           </div>
 
           <button type="submit" class="btn btn-primary btn-block">

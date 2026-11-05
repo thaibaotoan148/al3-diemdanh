@@ -670,6 +670,40 @@ body {
   color: #a16207;
 }
 
+.tuition-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+}
+
+.tuition-badge.tuition-paid {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
+}
+
+.tuition-badge.tuition-paid:hover {
+  background: #d1fae5;
+}
+
+.tuition-badge.tuition-unpaid {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+}
+
+.tuition-badge.tuition-unpaid:hover {
+  background: #ffedd5;
+}
+
 /* Attendance Controls Area inside Card */
 .student-attendance-controls {
   display: flex;
