@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261106_m1" />
+  <link rel="stylesheet" href="styles.css?v=20261110_v4" />
 </head>
 <body>
   <header class="app-header">
@@ -41,6 +41,8 @@
           <button type="button" id="nextDayBtn" class="btn-day-step" title="Ngày tiếp theo">›</button>
           <button type="button" id="todayBtn" class="btn-today" title="Về hôm nay">Hôm nay</button>
         </div>
+
+        <button id="authBtn" class="btn btn-outline" title="Đăng nhập tài khoản">Đăng nhập</button>
 
         <button id="cloudSyncBtn" class="btn btn-cloud" title="Cài đặt đồng bộ nhiều thiết bị (Cloud)">
           <span class="cloud-dot" id="cloudStatusDot"></span>
@@ -353,12 +355,23 @@
             <input type="month" id="monthlySelect" class="monthly-input" />
           </div>
 
-          <div class="monthly-filter-group">
-            <label for="monthlyShiftFilter">Lọc theo ca:</label>
-            <select id="monthlyShiftFilter" class="monthly-select">
-              <option value="all">Tất cả võ sinh CLB</option>
-              <option value="ca1">Chỉ Ca 1: Thứ 2-4-6 (16h45 - 18h15)</option>
-              <option value="ca2">Chỉ Ca 2: Thứ 3-5-7 (17h30 - 19h00)</option>
+          <div class="monthly-filter-group monthly-shift-group">
+            <label>Lọc theo ca:</label>
+            <div class="monthly-shift-pills" id="monthlyShiftPills" role="tablist" aria-label="Lọc theo ca tổng kết">
+              <button type="button" class="monthly-shift-pill active" data-shift="all" role="tab" aria-selected="true">
+                Cả 2 ca
+              </button>
+              <button type="button" class="monthly-shift-pill" data-shift="ca1" role="tab" aria-selected="false">
+                Ca 1 (T2-4-6)
+              </button>
+              <button type="button" class="monthly-shift-pill" data-shift="ca2" role="tab" aria-selected="false">
+                Ca 2 (T3-5-7)
+              </button>
+            </div>
+            <select id="monthlyShiftFilter" class="monthly-select" aria-label="Chọn ca tổng kết">
+              <option value="all">Cả 2 ca (Tất cả)</option>
+              <option value="ca1">Ca 1: Thứ 2-4-6 (16h45 - 18h15)</option>
+              <option value="ca2">Ca 2: Thứ 3-5-7 (17h30 - 19h00)</option>
             </select>
           </div>
 
@@ -454,8 +467,86 @@
     </div>
   </div>
 
+  <!-- DEDICATED FULL-SCREEN LOGIN PAGE (Trang Đăng Nhập Huấn Luyện Viên) -->
+  <div id="loginPageScreen" class="login-page-screen hidden" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <!-- Top Navigation Bar of Login Page -->
+    <header class="login-page-header">
+      <div class="container login-header-inner">
+        <div class="login-header-brand">
+          <img src="logo.png" alt="Logo CLB Vovinam TH An Lạc 3" class="login-nav-logo" />
+          <div class="login-nav-text">
+            <span class="login-nav-sub">Việt Võ Đạo</span>
+            <strong class="login-nav-title">CLB Vovinam TH An Lạc 3</strong>
+          </div>
+        </div>
+        <button type="button" id="backToAppBtn" class="btn-login-nav-back" title="Quay lại xem danh sách">
+          ‹ Quay lại trang xem
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Login Content Area -->
+    <main class="login-page-main">
+      <div class="login-card" id="loginCard">
+        <div class="login-brand-header">
+          <div class="login-brand-logo-wrap">
+            <img src="logo.png" alt="Logo CLB Vovinam TH An Lạc 3" class="login-brand-logo" />
+          </div>
+          <span class="login-brand-sub">HỆ THỐNG QUẢN LÝ NỘI BỘ</span>
+          <h1 id="loginTitle" class="login-brand-title">Đăng Nhập Huấn Luyện Viên</h1>
+          <p class="login-brand-hint">
+            Dành cho Ban Huấn Luyện thực hiện điểm danh và quản lý võ sinh
+          </p>
+        </div>
+
+        <form id="loginForm" class="login-page-form" autocomplete="on">
+          <div class="form-group">
+            <label for="loginUsername">Tên đăng nhập:</label>
+            <input
+              type="text"
+              id="loginUsername"
+              class="login-input"
+              placeholder="Nhập tên đăng nhập (Admin)..."
+              autocomplete="username"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="loginPassword">Mật khẩu:</label>
+            <div class="password-field-group">
+              <input
+                type="password"
+                id="loginPassword"
+                class="login-input"
+                placeholder="Nhập mật khẩu..."
+                autocomplete="current-password"
+                required
+              />
+              <button type="button" id="toggleLoginPasswordBtn" class="btn-toggle-pw" title="Hiện/ẩn mật khẩu">👁</button>
+            </div>
+          </div>
+
+          <div id="loginErrorMsg" class="login-error-msg hidden"></div>
+
+          <button type="submit" id="submitLoginBtn" class="btn-login-submit">
+            Đăng nhập
+          </button>
+
+          <button type="button" id="backToAppBtn2" class="btn-login-return">
+            Quay lại chế độ xem danh sách
+          </button>
+        </form>
+      </div>
+
+      <div class="login-page-footer">
+        © CLB Vovinam Trường Tiểu Học An Lạc 3 • Hệ Thống Điểm Danh & Võ Sinh
+      </div>
+    </main>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=20261106_m1"></script>
+  <script src="app.js?v=20261110_v4"></script>
 </body>
 </html>

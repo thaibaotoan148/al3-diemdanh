@@ -1,10 +1,16 @@
 // Đường dẫn Firebase Realtime Database chung của CLB Vovinam TH An Lạc 3:
 const DEFAULT_CLOUD_DB_URL = 'https://thai-bao-toan-default-rtdb.asia-southeast1.firebasedatabase.app';
 
+const AUTH_CREDENTIALS = {
+  username: 'Admin',
+  password: 'Tieuhocanlac3',
+};
+
 const STORAGE_KEYS = {
   MEMBERS: 'vovinam_anlac3_members_v1',
   ATTENDANCE: 'vovinam_anlac3_attendance_v1',
   CLOUD_URL: 'vovinam_anlac3_cloud_url_v1',
+  AUTH: 'vovinam_anlac3_auth_v1',
 };
 
 const SHIFTS = {
@@ -83,6 +89,8 @@ const SAMPLE_MEMBERS = [
 ];
 
 let state = {
+  isLoggedIn: localStorage.getItem(STORAGE_KEYS.AUTH) === 'true',
+  pendingAction: null,
   selectedDate: getTodayISO(),
   selectedMonth: getTodayISO().slice(0, 7), // 'YYYY-MM'
   monthlyShiftFilter: 'all', // 'all' | 'ca1' | 'ca2'
@@ -96,6 +104,105 @@ let state = {
   members: [],
   attendance: {},
 };
+
+/* =====================================================================
+   SECURITY & AUTHENTICATION (PARENT VIEW VS ADMIN)
+   ===================================================================== */
+function maskStudentId(id) {
+  if (!id) return 'Chưa có';
+  const clean = String(id).trim();
+  if (!clean) return 'Chưa có';
+  return '*'.repeat(clean.length > 0 ? clean.length : 12);
+}
+
+function requireAuth(callback) {
+  if (state.isLoggedIn) {
+    if (typeof callback === 'function') callback();
+    return;
+  }
+  state.pendingAction = callback || null;
+  openLoginScreen();
+}
+
+function openLoginScreen() {
+  const screen = document.getElementById('loginPageScreen');
+  const errorMsg = document.getElementById('loginErrorMsg');
+  const userInput = document.getElementById('loginUsername');
+  const passInput = document.getElementById('loginPassword');
+  if (errorMsg) {
+    errorMsg.textContent = '';
+    errorMsg.classList.add('hidden');
+  }
+  if (userInput) userInput.value = '';
+  if (passInput) {
+    passInput.value = '';
+    passInput.type = 'password';
+  }
+  if (screen) {
+    screen.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => userInput && userInput.focus(), 100);
+  }
+}
+
+function closeLoginScreen() {
+  const screen = document.getElementById('loginPageScreen');
+  if (screen) screen.classList.add('hidden');
+  document.body.style.overflow = '';
+  state.pendingAction = null;
+}
+
+function handleLoginSubmit(username, password) {
+  const u = (username || '').trim();
+  const p = (password || '').trim();
+  const errorMsg = document.getElementById('loginErrorMsg');
+  const card = document.getElementById('loginCard');
+
+  if (u.toLowerCase() === AUTH_CREDENTIALS.username.toLowerCase() && p === AUTH_CREDENTIALS.password) {
+    state.isLoggedIn = true;
+    localStorage.setItem(STORAGE_KEYS.AUTH, 'true');
+    closeLoginScreen();
+    updateAuthUI();
+    renderAll();
+    showToast('Đăng nhập Huấn Luyện Viên thành công.');
+    if (typeof state.pendingAction === 'function') {
+      const act = state.pendingAction;
+      state.pendingAction = null;
+      act();
+    }
+  } else {
+    if (errorMsg) {
+      errorMsg.textContent = 'Tên đăng nhập hoặc mật khẩu không chính xác.';
+      errorMsg.classList.remove('hidden');
+    }
+    if (card) {
+      card.classList.remove('shake');
+      void card.offsetWidth;
+      card.classList.add('shake');
+    }
+  }
+}
+
+function logout() {
+  state.isLoggedIn = false;
+  localStorage.setItem(STORAGE_KEYS.AUTH, 'false');
+  if (state.currentView === 'members' || state.currentView === 'add') {
+    state.currentView = 'attendance';
+  }
+  updateAuthUI();
+  renderAll();
+  showToast('Đã đăng xuất.');
+}
+
+function updateAuthUI() {
+  document.body.classList.toggle('mode-parent', !state.isLoggedIn);
+
+  const authBtn = document.getElementById('authBtn');
+  if (authBtn) {
+    authBtn.classList.toggle('is-logged-in', state.isLoggedIn);
+    authBtn.textContent = state.isLoggedIn ? 'Đăng xuất' : 'Đăng nhập';
+  }
+}
 
 function getTodayISO() {
   const now = new Date();
@@ -542,14 +649,16 @@ function buildMetaChipsHtml(m) {
       class="tuition-badge ${isPaid ? 'tuition-paid' : 'tuition-unpaid'}"
       data-action="toggle-tuition"
       data-id="${escapeHtml(m.id)}"
-      title="Bấm để đổi nhanh tình trạng học phí ${monthLabel} (Sang tháng mới tự động reset)"
+      title="${state.isLoggedIn ? `Bấm để đổi nhanh tình trạng học phí ${monthLabel} (Sang tháng mới tự động reset)` : `Tình trạng học phí ${monthLabel}`}"
     >
       ${isPaid ? `✓ Đã đóng HP (${monthLabel})` : `⏳ Chưa đóng HP (${monthLabel})`}
     </button>
   `;
 
+  const displayId = state.isLoggedIn ? (m.studentId || 'Chưa có') : maskStudentId(m.studentId);
+
   return `
-    <span class="meta-item meta-id">Mã ĐD: <strong>${escapeHtml(m.studentId || 'Chưa có')}</strong></span>
+    <span class="meta-item meta-id">Mã ĐD: <strong>${escapeHtml(displayId)}</strong></span>
     <span class="meta-item meta-belt ${isGoldBelt ? 'belt-gold' : ''}">${escapeHtml(m.belt || 'Tự vệ nhập môn')}</span>
     ${tuitionBadgeHtml}
     ${m.phone ? `<span class="meta-item">SĐT: <strong>${escapeHtml(m.phone)}</strong></span>` : ''}
@@ -696,7 +805,7 @@ function renderMemberList() {
   container.innerHTML = members
     .map((m, idx) => {
       const record = sessionRecord[m.id] || { status: '', note: '' };
-      const isExpanded = isEditModeView || state.expandedEditIds.has(m.id);
+      const isExpanded = state.isLoggedIn && (isEditModeView || state.expandedEditIds.has(m.id));
       const statusClass = !isEditModeView && record.status ? `status-${record.status}` : '';
 
       const beltOptionsHtml = BELT_OPTIONS.map(
@@ -713,9 +822,9 @@ function renderMemberList() {
                   <span class="student-name-text">${escapeHtml(m.name)}</span>
                   <div class="card-quick-actions">
                     ${
-                      !isEditModeView
+                      !isEditModeView && state.isLoggedIn
                         ? `<button type="button" class="btn-edit-toggle ${isExpanded ? 'active' : ''}" data-action="toggle-edit" data-id="${escapeHtml(m.id)}">
-                            ✏️ ${isExpanded ? 'Đóng sửa' : 'Sửa TT'}
+                            ${isExpanded ? 'Đóng' : 'Sửa TT'}
                           </button>`
                         : ''
                     }
@@ -744,10 +853,11 @@ function renderMemberList() {
                     <input
                       type="text"
                       class="note-input"
-                      placeholder="Ghi chú buổi tập..."
+                      placeholder="${state.isLoggedIn ? 'Ghi chú buổi tập...' : 'Chưa có ghi chú'}"
                       value="${escapeHtml(record.note || '')}"
                       data-action="note"
                       data-id="${escapeHtml(m.id)}"
+                      ${!state.isLoggedIn ? 'readonly' : ''}
                     />
                   </div>`
                 : ''
@@ -960,6 +1070,13 @@ function renderMonthlyStats() {
     shiftSelect.value = state.monthlyShiftFilter;
   }
 
+  // Cập nhật trạng thái nút bấm lọc ca (Pills)
+  document.querySelectorAll('#monthlyShiftPills .monthly-shift-pill').forEach((pill) => {
+    const isCurrent = pill.dataset.shift === (state.monthlyShiftFilter || 'all');
+    pill.classList.toggle('active', isCurrent);
+    pill.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
+  });
+
   if (!summaryCards || !tbody) return;
 
   const { ym, list, totalRecordedSessions } = computeMonthlyStats();
@@ -1032,11 +1149,13 @@ function renderMonthlyStats() {
           ? `<span class="tuition-badge tuition-paid" style="font-size: 0.74rem;">✓ Đã đóng</span>`
           : `<span class="tuition-badge tuition-unpaid" style="font-size: 0.74rem;">⏳ Chưa đóng</span>`;
 
+      const displayStudentId = state.isLoggedIn ? (member.studentId || '—') : maskStudentId(member.studentId);
+
       return `
         <tr>
           <td><span class="${rankBadgeClass}">${idx + 1}</span></td>
           <td><strong>${escapeHtml(member.name)}</strong></td>
-          <td><span style="font-variant-numeric: tabular-nums; color: var(--text-secondary);">${escapeHtml(member.studentId || '—')}</span></td>
+          <td><span style="font-variant-numeric: tabular-nums; color: var(--text-secondary);">${escapeHtml(displayStudentId)}</span></td>
           <td><span class="meta-item meta-belt">${escapeHtml(member.belt || 'Tự vệ nhập môn')}</span></td>
           <td><span class="meta-item" style="font-size: 0.74rem;">${escapeHtml(shiftLabel)}</span></td>
           <td>${tuitionTag}</td>
@@ -1054,10 +1173,12 @@ function renderMonthlyStats() {
             <input
               type="text"
               class="monthly-eval-input"
-              placeholder="Nhập nhận xét của HLV..."
+              placeholder="${state.isLoggedIn ? 'Nhập nhận xét của HLV...' : 'Chưa có nhận xét'}"
               value="${escapeHtml(getMemberMonthlyEval(member, ym))}"
               data-action="monthly-eval"
               data-id="${escapeHtml(member.id)}"
+              ${!state.isLoggedIn ? 'readonly' : ''}
+              title="${state.isLoggedIn ? 'Nhập nhận xét võ sinh' : 'Đăng nhập để nhập nhận xét'}"
             />
           </td>
         </tr>
@@ -1079,7 +1200,14 @@ function exportMonthlyToXLSX() {
       ? 'Ca 1: Thứ 2-4-6 (16h45 - 18h15)'
       : state.monthlyShiftFilter === 'ca2'
       ? 'Ca 2: Thứ 3-5-7 (17h30 - 19h00)'
-      : 'Tất cả các ca';
+      : 'Cả 2 ca (Toàn CLB)';
+
+  const shiftFileSuffix =
+    state.monthlyShiftFilter === 'ca1'
+      ? 'Ca1'
+      : state.monthlyShiftFilter === 'ca2'
+      ? 'Ca2'
+      : 'Ca2Ca';
 
   const rows = [
     [{ v: 'CLB VOVINAM TRƯỜNG TIỂU HỌC AN LẠC 3 - BÁO CÁO CHUYÊN CẦN THÁNG', s: 1 }],
@@ -1120,13 +1248,15 @@ function exportMonthlyToXLSX() {
       member.shift === 'both' ? 'Cả 2 ca' : member.shift === 'ca1' ? 'Ca 1 (T2-4-6)' : 'Ca 2 (T3-5-7)';
 
     const hlvComment = getMemberMonthlyEval(member, ym);
+    const exportStudentId = state.isLoggedIn ? (member.studentId || '') : maskStudentId(member.studentId);
+    const exportPhone = member.phone || '';
 
     rows.push([
       { v: index + 1, s: 3 },
       { v: member.name, s: 3 },
-      { v: member.studentId || '', s: 3 },
+      { v: exportStudentId, s: 3 },
       { v: member.belt || '', s: 3 },
-      { v: member.phone || '', s: 3 },
+      { v: exportPhone, s: 3 },
       { v: shiftLabel, s: 3 },
       { v: tuitionStatus === 'paid' ? 'Đã đóng' : 'Chưa đóng', s: 3 },
       { v: presentCount, s: 3 },
@@ -1142,7 +1272,7 @@ function exportMonthlyToXLSX() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `BaoCao_ChuyenCan_Vovinam_AnLac3_${ym}.xlsx`;
+  link.download = `BaoCao_ChuyenCan_Vovinam_AnLac3_${shiftFileSuffix}_${ym}.xlsx`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -1152,6 +1282,7 @@ function exportMonthlyToXLSX() {
 }
 
 function renderAll() {
+  updateAuthUI();
   syncScheduleFromDate();
   renderDayBanner();
   renderViewNavigation();
@@ -1451,12 +1582,15 @@ function exportToXLSX() {
 
   members.forEach((m, index) => {
     const rec = sessionRecord[m.id] || { status: '', note: '' };
+    const exportStudentId = state.isLoggedIn ? (m.studentId || '') : maskStudentId(m.studentId);
+    const exportPhone = m.phone || '';
+
     rows.push([
       { v: index + 1, s: 3 },
       { v: m.name, s: 3 },
-      { v: m.studentId || '', s: 3 },
+      { v: exportStudentId, s: 3 },
       { v: m.belt || '', s: 3 },
-      { v: m.phone || '', s: 3 },
+      { v: exportPhone, s: 3 },
       { v: getMemberTuitionStatus(m) === 'paid' ? 'Đã đóng' : 'Chưa đóng', s: 3 },
       { v: statusMap[rec.status || ''], s: 3 },
       { v: rec.note || '', s: 3 },
@@ -1517,7 +1651,15 @@ function initEvents() {
   // Section Navigation Tabs (Điểm danh | Sửa thông tin | Thêm võ sinh | Thống kê)
   document.querySelectorAll('.section-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      state.currentView = tab.dataset.view;
+      const targetView = tab.dataset.view;
+      if ((targetView === 'members' || targetView === 'add') && !state.isLoggedIn) {
+        requireAuth(() => {
+          state.currentView = targetView;
+          renderAll();
+        });
+        return;
+      }
+      state.currentView = targetView;
       renderAll();
     });
   });
@@ -1548,6 +1690,10 @@ function initEvents() {
   const addMemberForm = document.getElementById('addMemberForm');
   addMemberForm.addEventListener('submit', (e) => {
     e.preventDefault();
+    if (!state.isLoggedIn) {
+      requireAuth();
+      return;
+    }
     const nameInput = document.getElementById('memberName');
     const studentIdInput = document.getElementById('memberStudentId');
     const beltSelect = document.getElementById('memberBelt');
@@ -1586,6 +1732,10 @@ function initEvents() {
 
   // Bulk import handler
   document.getElementById('bulkImportBtn').addEventListener('click', () => {
+    if (!state.isLoggedIn) {
+      requireAuth();
+      return;
+    }
     const textarea = document.getElementById('bulkTextarea');
     const bulkShiftSelect = document.getElementById('bulkShiftSelect');
     const targetShift = bulkShiftSelect ? bulkShiftSelect.value : state.currentShift || 'ca1';
@@ -1631,6 +1781,12 @@ function initEvents() {
 
   // Mark all present
   document.getElementById('markAllPresentBtn').addEventListener('click', () => {
+    if (!state.isLoggedIn) {
+      requireAuth(() => {
+        document.getElementById('markAllPresentBtn').click();
+      });
+      return;
+    }
     if (!state.currentShift) return;
     const members = getMembersForShift(state.currentShift);
     if (members.length === 0) return;
@@ -1649,6 +1805,12 @@ function initEvents() {
 
   // Reset attendance for current session
   document.getElementById('resetAttendanceBtn').addEventListener('click', () => {
+    if (!state.isLoggedIn) {
+      requireAuth(() => {
+        document.getElementById('resetAttendanceBtn').click();
+      });
+      return;
+    }
     if (!state.currentShift) return;
     const key = getAttendanceKey();
     if (!state.attendance[key]) return;
@@ -1664,14 +1826,30 @@ function initEvents() {
   const listContainer = document.getElementById('memberListContainer');
 
   listContainer.addEventListener('click', (e) => {
+    const noteInput = e.target.closest('[data-action="note"]');
+    if (noteInput && !state.isLoggedIn) {
+      requireAuth();
+      return;
+    }
+
     const statusBtn = e.target.closest('[data-action="status"]');
     if (statusBtn) {
+      if (!state.isLoggedIn) {
+        requireAuth(() => {
+          setAttendanceStatus(statusBtn.dataset.id, statusBtn.dataset.status);
+        });
+        return;
+      }
       setAttendanceStatus(statusBtn.dataset.id, statusBtn.dataset.status);
       return;
     }
 
     const tuitionBtn = e.target.closest('[data-action="toggle-tuition"]');
     if (tuitionBtn) {
+      if (!state.isLoggedIn) {
+        requireAuth();
+        return;
+      }
       const id = tuitionBtn.dataset.id;
       const member = state.members.find((m) => m.id === id);
       if (member) {
@@ -1694,6 +1872,10 @@ function initEvents() {
 
     const toggleEditBtn = e.target.closest('[data-action="toggle-edit"]');
     if (toggleEditBtn) {
+      if (!state.isLoggedIn) {
+        requireAuth();
+        return;
+      }
       const id = toggleEditBtn.dataset.id;
       if (state.expandedEditIds.has(id)) {
         state.expandedEditIds.delete(id);
@@ -1706,6 +1888,10 @@ function initEvents() {
 
     const deleteBtn = e.target.closest('[data-action="delete"]');
     if (deleteBtn) {
+      if (!state.isLoggedIn) {
+        requireAuth();
+        return;
+      }
       const id = deleteBtn.dataset.id;
       const member = state.members.find((m) => m.id === id);
       if (member && confirm(`Xóa võ sinh "${member.name}" khỏi danh sách CLB?`)) {
@@ -1719,6 +1905,7 @@ function initEvents() {
   });
 
   listContainer.addEventListener('input', (e) => {
+    if (!state.isLoggedIn) return;
     const noteInput = e.target.closest('[data-action="note"]');
     if (noteInput) {
       setAttendanceNote(noteInput.dataset.id, noteInput.value);
@@ -1732,6 +1919,21 @@ function initEvents() {
   });
 
   listContainer.addEventListener('change', (e) => {
+    if (!state.isLoggedIn) return;
+    const noteInput = e.target.closest('[data-action="note"]');
+    if (noteInput) {
+      setAttendanceNote(noteInput.dataset.id, noteInput.value);
+      return;
+    }
+
+    const editField = e.target.closest('[data-action="edit-field"]');
+    if (editField && editField.tagName === 'INPUT') {
+      updateMemberField(editField.dataset.id, editField.dataset.field, editField.value);
+    }
+  });
+
+  listContainer.addEventListener('change', (e) => {
+    if (!state.isCoach) return;
     const editSelect = e.target.closest('[data-action="edit-field"]');
     if (editSelect && editSelect.tagName === 'SELECT') {
       updateMemberField(editSelect.dataset.id, editSelect.dataset.field, editSelect.value);
@@ -1802,6 +2004,21 @@ function initEvents() {
     });
   }
 
+  // Monthly shift pills click handler (Cả 2 ca / Ca 1 / Ca 2)
+  const monthlyShiftPills = document.getElementById('monthlyShiftPills');
+  if (monthlyShiftPills) {
+    monthlyShiftPills.addEventListener('click', (e) => {
+      const pill = e.target.closest('.monthly-shift-pill');
+      if (pill && pill.dataset.shift) {
+        state.monthlyShiftFilter = pill.dataset.shift;
+        if (monthlyShiftFilter) {
+          monthlyShiftFilter.value = state.monthlyShiftFilter;
+        }
+        renderMonthlyStats();
+      }
+    });
+  }
+
   const exportMonthlyBtn = document.getElementById('exportMonthlyXlsxBtn');
   if (exportMonthlyBtn) {
     exportMonthlyBtn.addEventListener('click', exportMonthlyToXLSX);
@@ -1809,7 +2026,15 @@ function initEvents() {
 
   const monthlyTableBody = document.getElementById('monthlyTableBody');
   if (monthlyTableBody) {
+    monthlyTableBody.addEventListener('click', (e) => {
+      const evalInput = e.target.closest('[data-action="monthly-eval"]');
+      if (evalInput && !state.isLoggedIn) {
+        requireAuth();
+      }
+    });
+
     monthlyTableBody.addEventListener('input', (e) => {
+      if (!state.isLoggedIn) return;
       const evalInput = e.target.closest('[data-action="monthly-eval"]');
       if (evalInput) {
         setMemberMonthlyEval(evalInput.dataset.id, evalInput.value);
@@ -1863,6 +2088,53 @@ function initEvents() {
     cloudModal.classList.add('hidden');
     showToast('Đã ngắt kết nối Cloud (chỉ lưu trên thiết bị này).');
   });
+
+  // Auth Header button (Đăng nhập / Đăng xuất)
+  const authBtn = document.getElementById('authBtn');
+  if (authBtn) {
+    authBtn.addEventListener('click', () => {
+      if (state.isLoggedIn) {
+        if (confirm('Bạn có muốn đăng xuất?')) {
+          logout();
+        }
+      } else {
+        openLoginScreen();
+      }
+    });
+  }
+
+  // Dedicated Login Screen events
+  const loginPageScreen = document.getElementById('loginPageScreen');
+  const loginForm = document.getElementById('loginForm');
+  const loginUsername = document.getElementById('loginUsername');
+  const loginPassword = document.getElementById('loginPassword');
+  const backToAppBtn = document.getElementById('backToAppBtn');
+  const backToAppBtn2 = document.getElementById('backToAppBtn2');
+  const toggleLoginPasswordBtn = document.getElementById('toggleLoginPasswordBtn');
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleLoginSubmit(loginUsername.value, loginPassword.value);
+    });
+  }
+
+  if (backToAppBtn) backToAppBtn.addEventListener('click', closeLoginScreen);
+  if (backToAppBtn2) backToAppBtn2.addEventListener('click', closeLoginScreen);
+
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && loginPageScreen && !loginPageScreen.classList.contains('hidden')) {
+      closeLoginScreen();
+    }
+  });
+
+  if (toggleLoginPasswordBtn && loginPassword) {
+    toggleLoginPasswordBtn.addEventListener('click', () => {
+      loginPassword.type = loginPassword.type === 'password' ? 'text' : 'password';
+      toggleLoginPasswordBtn.textContent = loginPassword.type === 'password' ? '👁' : '🙈';
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
