@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261110_v4" />
+  <link rel="stylesheet" href="styles.css?v=20261111_clean" />
 </head>
 <body>
   <header class="app-header">
@@ -264,12 +264,21 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="memberTuition">Tình trạng học phí tháng này</label>
-            <select id="memberTuition">
-              <option value="unpaid">Chưa đóng</option>
-              <option value="paid">Đã đóng</option>
-            </select>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="memberStartDate">Ngày bắt đầu tính (nhập học)</label>
+              <input type="date" id="memberStartDate" class="date-input" />
+              <small class="form-hint" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+                Điểm danh & chuyên cần sẽ tính từ ngày này trở đi
+              </small>
+            </div>
+            <div class="form-group">
+              <label for="memberTuition">Tình trạng học phí tháng này</label>
+              <select id="memberTuition">
+                <option value="unpaid">Chưa đóng</option>
+                <option value="paid">Đã đóng</option>
+              </select>
+            </div>
           </div>
 
           <button type="submit" class="btn btn-primary btn-block">
@@ -283,13 +292,19 @@
 
         <div class="quick-import-box">
           <h3 class="sub-box-title">Nhập nhanh nhiều võ sinh cùng lúc</h3>
-          <div class="form-group">
-            <label for="bulkShiftSelect">Nhập vào ca học:</label>
-            <select id="bulkShiftSelect">
-              <option value="ca1">Ca 1: Thứ 2-4-6 (16h45 - 18h15)</option>
-              <option value="ca2">Ca 2: Thứ 3-5-7 (17h30 - 19h00)</option>
-              <option value="both">Cả 2 ca (Full tuần)</option>
-            </select>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="bulkShiftSelect">Nhập vào ca học:</label>
+              <select id="bulkShiftSelect">
+                <option value="ca1">Ca 1: Thứ 2-4-6 (16h45 - 18h15)</option>
+                <option value="ca2">Ca 2: Thứ 3-5-7 (17h30 - 19h00)</option>
+                <option value="both">Cả 2 ca (Full tuần)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="bulkStartDate">Ngày bắt đầu tính:</label>
+              <input type="date" id="bulkStartDate" class="date-input" />
+            </div>
           </div>
           <p class="bulk-hint">Mỗi dòng 1 võ sinh theo thứ tự: <code>Họ tên - Mã định danh - SĐT</code></p>
           <textarea id="bulkTextarea" rows="5" placeholder="Nguyễn Văn An - 079215001234 - 0901234567&#10;Trần Ngọc Bích - 079214005678&#10;Lê Hoàng Nam"></textarea>
@@ -547,6 +562,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=20261110_v4"></script>
+  <script src="app.js?v=20261111_clean"></script>
 </body>
 </html>

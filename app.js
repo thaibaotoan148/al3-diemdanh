@@ -78,14 +78,14 @@ function sortMembersByBelt(list) {
 }
 
 const SAMPLE_MEMBERS = [
-  { id: 'm1', name: 'Nguyễn Minh Khang', studentId: '079215001245', belt: 'Lam đai I', phone: '0903 112 456', shift: 'ca1' },
-  { id: 'm2', name: 'Trần Bảo Ngọc', studentId: '079316002381', belt: 'Tự vệ nhập môn', phone: '0918 223 789', shift: 'ca1' },
-  { id: 'm3', name: 'Lê Hoàng Gia Bảo', studentId: '079214004512', belt: 'Lam đai II', phone: '0989 445 112', shift: 'ca1' },
-  { id: 'm4', name: 'Phạm Hà Phương', studentId: '079317008910', belt: 'Lam đai', phone: '0932 556 890', shift: 'ca1' },
-  { id: 'm5', name: 'Võ Quốc Thiên', studentId: '079214007731', belt: 'Lam đai III', phone: '0977 889 234', shift: 'both' },
-  { id: 'm6', name: 'Đặng Tuấn Kiệt', studentId: '079215003319', belt: 'Lam đai I', phone: '0908 654 321', shift: 'ca2' },
-  { id: 'm7', name: 'Hoàng Ngọc Diệp', studentId: '079316006420', belt: 'Lam đai', phone: '0912 334 556', shift: 'ca2' },
-  { id: 'm8', name: 'Bùi Đức Anh', studentId: '079218009104', belt: 'Tự vệ nhập môn', phone: '0965 778 901', shift: 'ca2' },
+  { id: 'm1', name: 'Nguyễn Minh Khang', studentId: '079215001245', belt: 'Lam đai I', phone: '0903 112 456', shift: 'ca1', startDate: '2026-11-01' },
+  { id: 'm2', name: 'Trần Bảo Ngọc', studentId: '079316002381', belt: 'Tự vệ nhập môn', phone: '0918 223 789', shift: 'ca1', startDate: '2026-11-01' },
+  { id: 'm3', name: 'Lê Hoàng Gia Bảo', studentId: '079214004512', belt: 'Lam đai II', phone: '0989 445 112', shift: 'ca1', startDate: '2026-11-01' },
+  { id: 'm4', name: 'Phạm Hà Phương', studentId: '079317008910', belt: 'Lam đai', phone: '0932 556 890', shift: 'ca1', startDate: '2026-11-01' },
+  { id: 'm5', name: 'Võ Quốc Thiên', studentId: '079214007731', belt: 'Lam đai III', phone: '0977 889 234', shift: 'both', startDate: '2026-11-01' },
+  { id: 'm6', name: 'Đặng Tuấn Kiệt', studentId: '079215003319', belt: 'Lam đai I', phone: '0908 654 321', shift: 'ca2', startDate: '2026-11-01' },
+  { id: 'm7', name: 'Hoàng Ngọc Diệp', studentId: '079316006420', belt: 'Lam đai', phone: '0912 334 556', shift: 'ca2', startDate: '2026-11-01' },
+  { id: 'm8', name: 'Bùi Đức Anh', studentId: '079218009104', belt: 'Tự vệ nhập môn', phone: '0965 778 901', shift: 'ca2', startDate: '2026-11-01' },
 ];
 
 let state = {
@@ -694,10 +694,13 @@ function renderDayBanner() {
     countBox.classList.add('hidden');
   } else {
     const membersInShift = getMembersForShift(sched.shiftId);
+    const activeMembersInShift = membersInShift.filter(
+      (m) => !m.startDate || m.startDate <= state.selectedDate
+    );
     bannerTitle.textContent = sched.shiftInfo.name;
     bannerSub.textContent = `Hiển thị danh sách võ sinh thuộc ${sched.shiftInfo.shortName} trong ngày ${dateVN}`;
     countBox.classList.remove('hidden');
-    countNum.textContent = membersInShift.length;
+    countNum.textContent = activeMembersInShift.length;
   }
 }
 
@@ -766,6 +769,9 @@ function renderStats() {
   }
 
   const shiftMembers = getMembersForShift(state.currentShift);
+  const activeShiftMembers = shiftMembers.filter(
+    (m) => !m.startDate || m.startDate <= state.selectedDate
+  );
   const key = getAttendanceKey();
   const sessionRecord = state.attendance[key] || {};
 
@@ -773,14 +779,14 @@ function renderStats() {
   let excused = 0;
   let absent = 0;
 
-  shiftMembers.forEach((m) => {
+  activeShiftMembers.forEach((m) => {
     const st = sessionRecord[m.id]?.status;
     if (st === 'present') present++;
     else if (st === 'excused') excused++;
     else if (st === 'absent') absent++;
   });
 
-  document.getElementById('statTotal').textContent = shiftMembers.length;
+  document.getElementById('statTotal').textContent = activeShiftMembers.length;
   document.getElementById('statPresent').textContent = present;
   document.getElementById('statExcused').textContent = excused;
   document.getElementById('statAbsent').textContent = absent;
@@ -899,6 +905,10 @@ function renderMemberList() {
                       <option value="unpaid" ${getMemberTuitionStatus(m) !== 'paid' ? 'selected' : ''}>Chưa đóng</option>
                       <option value="paid" ${getMemberTuitionStatus(m) === 'paid' ? 'selected' : ''}>Đã đóng</option>
                     </select>
+                  </div>
+                  <div class="edit-field">
+                    <label>Ngày bắt đầu tính (nhập học)</label>
+                    <input type="date" value="${escapeHtml(m.startDate || '')}" data-action="edit-field" data-field="startDate" data-id="${escapeHtml(m.id)}" />
                   </div>
                   <div class="edit-actions-row">
                     <span class="auto-save-badge">✓ Mọi thay đổi được lưu tự động</span>
@@ -1021,6 +1031,9 @@ function computeMonthlyStats() {
 
     monthSessionKeys.forEach((key) => {
       const [sessionDate, sessionShift] = key.split('_');
+      // Không tính các buổi học diễn ra trước ngày bắt đầu tính của võ sinh
+      if (m.startDate && sessionDate < m.startDate) return;
+
       const memberRegistered = (m.shift || 'ca1') === sessionShift || m.shift === 'both';
       if (!memberRegistered) return;
       if (targetShift !== 'all' && sessionShift !== targetShift) return;
@@ -1222,6 +1235,7 @@ function exportMonthlyToXLSX() {
       { v: 'Họ và tên võ sinh', s: 2 },
       { v: 'Mã định danh', s: 2 },
       { v: 'Cấp đai', s: 2 },
+      { v: 'Ngày bắt đầu tính', s: 2 },
       { v: 'SĐT Phụ huynh', s: 2 },
       { v: 'Ca đăng ký', s: 2 },
       { v: 'Tình trạng học phí', s: 2 },
@@ -1250,12 +1264,14 @@ function exportMonthlyToXLSX() {
     const hlvComment = getMemberMonthlyEval(member, ym);
     const exportStudentId = state.isLoggedIn ? (member.studentId || '') : maskStudentId(member.studentId);
     const exportPhone = member.phone || '';
+    const exportStartDate = member.startDate ? formatDateVN(member.startDate) : 'Từ đầu tháng';
 
     rows.push([
       { v: index + 1, s: 3 },
       { v: member.name, s: 3 },
       { v: exportStudentId, s: 3 },
       { v: member.belt || '', s: 3 },
+      { v: exportStartDate, s: 3 },
       { v: exportPhone, s: 3 },
       { v: shiftLabel, s: 3 },
       { v: tuitionStatus === 'paid' ? 'Đã đóng' : 'Chưa đóng', s: 3 },
@@ -1584,6 +1600,10 @@ function exportToXLSX() {
     const rec = sessionRecord[m.id] || { status: '', note: '' };
     const exportStudentId = state.isLoggedIn ? (m.studentId || '') : maskStudentId(m.studentId);
     const exportPhone = m.phone || '';
+    let exportStatus = statusMap[rec.status || ''];
+    if (!rec.status && m.startDate && state.selectedDate < m.startDate) {
+      exportStatus = `Chưa nhập học (BĐ: ${formatDateVN(m.startDate)})`;
+    }
 
     rows.push([
       { v: index + 1, s: 3 },
@@ -1592,7 +1612,7 @@ function exportToXLSX() {
       { v: m.belt || '', s: 3 },
       { v: exportPhone, s: 3 },
       { v: getMemberTuitionStatus(m) === 'paid' ? 'Đã đóng' : 'Chưa đóng', s: 3 },
-      { v: statusMap[rec.status || ''], s: 3 },
+      { v: exportStatus, s: 3 },
       { v: rec.note || '', s: 3 },
     ]);
   });
@@ -1626,6 +1646,11 @@ function initEvents() {
       setDateAndRender(e.target.value);
     }
   });
+
+  const memberStartDate = document.getElementById('memberStartDate');
+  if (memberStartDate) memberStartDate.value = state.selectedDate;
+  const bulkStartDate = document.getElementById('bulkStartDate');
+  if (bulkStartDate) bulkStartDate.value = state.selectedDate;
 
   document.getElementById('prevDayBtn').addEventListener('click', () => {
     setDateAndRender(addDaysISO(state.selectedDate, -1));
@@ -1700,11 +1725,14 @@ function initEvents() {
     const phoneInput = document.getElementById('memberPhone');
     const shiftSelect = document.getElementById('memberShift');
     const tuitionSelect = document.getElementById('memberTuition');
+    const startDateInput = document.getElementById('memberStartDate');
 
     const name = nameInput.value.trim();
     if (!name) return;
 
     const initialTuition = tuitionSelect ? tuitionSelect.value : 'unpaid';
+    const startDateVal = startDateInput && startDateInput.value ? startDateInput.value : state.selectedDate || getTodayISO();
+
     const newMember = {
       id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
       name,
@@ -1712,6 +1740,7 @@ function initEvents() {
       belt: beltSelect.value,
       phone: phoneInput.value.trim(),
       shift: shiftSelect.value,
+      startDate: startDateVal,
       tuitionByMonth: {
         [getMonthKey()]: initialTuition === 'paid' ? 'paid' : 'unpaid',
       },
@@ -1724,10 +1753,11 @@ function initEvents() {
     if (studentIdInput) studentIdInput.value = '';
     phoneInput.value = '';
     if (tuitionSelect) tuitionSelect.value = 'unpaid';
+    if (startDateInput) startDateInput.value = state.selectedDate || getTodayISO();
     nameInput.focus();
 
     renderAll();
-    showToast(`Đã thêm võ sinh "${name}" vào danh sách!`);
+    showToast(`Đã thêm võ sinh "${name}" (Bắt đầu tính từ: ${formatDateVN(startDateVal)})!`);
   });
 
   // Bulk import handler
@@ -1738,7 +1768,9 @@ function initEvents() {
     }
     const textarea = document.getElementById('bulkTextarea');
     const bulkShiftSelect = document.getElementById('bulkShiftSelect');
+    const bulkStartDateInput = document.getElementById('bulkStartDate');
     const targetShift = bulkShiftSelect ? bulkShiftSelect.value : state.currentShift || 'ca1';
+    const bulkStartDateVal = bulkStartDateInput && bulkStartDateInput.value ? bulkStartDateInput.value : state.selectedDate || getTodayISO();
 
     const lines = textarea.value
       .split('\n')
@@ -1762,6 +1794,7 @@ function initEvents() {
         belt: 'Tự vệ nhập môn',
         phone: parts[2] || '',
         shift: targetShift,
+        startDate: bulkStartDateVal,
         tuitionByMonth: {},
       });
       addedCount++;
